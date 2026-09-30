@@ -10,6 +10,8 @@ import { NavLink } from 'react-router-dom'
 type SidebarProps = {
   isOpen: boolean
   onNavigate: () => void
+  accountEmail: string
+  workspaceName: string
 }
 
 const primaryLinks = [
@@ -18,7 +20,7 @@ const primaryLinks = [
   { label: 'Tarefas', to: '/tarefas', icon: CheckSquare2 },
 ]
 
-export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
+export function Sidebar({ isOpen, onNavigate, accountEmail, workspaceName }: SidebarProps) {
   return (
     <aside aria-label="Navegação principal" className="sidebar" data-open={isOpen}>
       <NavLink aria-label="CRATO, visão geral" className="brand" onClick={onNavigate} to="/">
@@ -67,8 +69,8 @@ export function Sidebar({ isOpen, onNavigate }: SidebarProps) {
         <div aria-label="Usuário atual" className="sidebar-footer">
           <span aria-hidden="true" className="avatar">CA</span>
           <span>
-            <span className="account-name">Conta CRATO</span>
-            <span className="account-caption">Espaço de trabalho</span>
+            <span className="account-name">{accountEmail}</span>
+            <span className="account-caption">{workspaceName}</span>
           </span>
         </div>
       </div>
