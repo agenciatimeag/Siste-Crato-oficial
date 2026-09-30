@@ -6,12 +6,21 @@ Reconstruir o CRATO a partir de uma base limpa, preservando as regras de negóci
 
 ## Escopo inicial
 
-Os dois módulos prioritários são:
+A ordem estrutural da primeira versão é:
 
-1. Clientes
-2. Tarefas
+1. Fundação técnica
+2. Autenticação / organização / usuário mínimo
+3. Clientes
+4. Contratos e condições financeiras
+5. Projetos
+6. Motor de workflow
+7. Tarefas
 
-Projetos entra como entidade-base entre Cliente e Tarefa, mesmo que a primeira interface seja mínima.
+A relação operacional principal é:
+
+`Cliente -> Projeto -> Tarefa`
+
+Contrato é uma entidade própria vinculada ao Cliente.
 
 ---
 
@@ -19,62 +28,182 @@ Projetos entra como entidade-base entre Cliente e Tarefa, mesmo que a primeira i
 
 ## Papel no sistema
 
-Cliente é a entidade comercial/operacional principal. Um cliente pode possuir vários projetos e suas tarefas, planejamentos, aprovações e demais dados devem ser vinculados a ele por relações explícitas.
+Cliente é a raiz comercial e operacional. Um cliente pode possuir vários contratos e vários projetos. As tarefas pertencem aos projetos e chegam ao cliente por essa relação.
 
-## V1
+## Dados principais
 
-Campos mínimos:
-
-- Nome
-- Nome fantasia, quando aplicável
-- Status: ativo / inativo
-- Logo
-- Contato principal
+- Nome de exibição
+- Razão social
+- Nome fantasia
+- CNPJ
+- Telefone
 - E-mail
-- Telefone / WhatsApp
-- Observações
+- Status: ativo / pausado / inativo
 - Responsável interno pela conta
+- Observações
 - Data de entrada
 - Data de encerramento, quando houver
 
-## Relações
+## Contatos do cliente
 
-Cliente
-- possui Projetos
-- possui Tarefas por meio dos Projetos e/ou vínculo direto quando necessário
-- futuramente possui Contratos / Serviços
-- futuramente possui Planejamentos
-- futuramente possui Aprovações
-- futuramente possui arquivos e histórico
+Um cliente pode possuir vários contatos. Um deles pode ser marcado como contato principal.
+
+Cada contato pode possuir:
+- Nome
+- Cargo / função
+- E-mail
+- Telefone
+- Observações
 
 ## Regras
 
-- Cliente inativo não deve desaparecer do histórico.
-- Cliente não deve ser excluído fisicamente se já possuir relações operacionais relevantes.
-- A interface deve permitir encontrar rapidamente projetos, tarefas abertas e informações operacionais do cliente.
-- O detalhe do cliente será uma página, não um modal.
+- Cliente inativo não desaparece do histórico.
+- Cliente com relações operacionais relevantes não deve ser excluído fisicamente.
+- O detalhe do cliente é uma página, não um modal.
+- A interface deve permitir encontrar rapidamente contratos, projetos, tarefas e atividade recente.
 
 ---
 
-# 2. Projetos
+# 2. Contratos
 
-Projeto é uma entidade-base do sistema e pertence a um Cliente.
+Contrato pertence a um Cliente e não deve ser confundido com o próprio cadastro do cliente.
 
-## V1 mínima
+Um cliente pode possuir mais de um contrato ao longo do tempo ou simultaneamente.
+
+## Formas de criação
+
+- A partir de modelo
+- Escrito manualmente
+- Contrato/documento já existente
+
+Modelos de contrato são registros independentes e podem ser reutilizados.
+
+Quando um contrato nasce de um modelo, seu conteúdo deve ser copiado para o contrato para que futuras alterações no modelo não mudem contratos antigos.
+
+## Dados do contrato
+
+- Cliente
+- Título
+- Código opcional
+- Origem: modelo / manual / upload
+- Status: rascunho / ativo / pausado / encerrado / cancelado
+- Conteúdo do contrato
+- Data de início
+- Data final
+- Data de assinatura, quando houver
+- Observações
+
+## Condições financeiras
+
+As condições financeiras pertencem ao contrato.
+
+Formas iniciais:
+- Recorrente
+- À vista
+- Parcelado
+
+Campos possíveis conforme a forma:
+- Valor total
+- Valor recorrente
+- Valor da parcela
+- Quantidade de parcelas
+- Dia de vencimento
+- Primeiro vencimento
+- Moeda BRL
+
+Valores monetários devem ser persistidos em centavos, não em ponto flutuante.
+
+## Vencimento do contrato
+
+O sistema deve calcular visualmente o tempo restante a partir da data final do contrato. Não persistir um campo do tipo "faltam X dias".
+
+A data final deve permitir alertas futuros, como 60, 30, 15 e 7 dias antes do vencimento.
+
+Integrações futuras como Autentique e Asaas devem se apoiar nesta estrutura sem virar a fonte principal da regra de negócio.
+
+---
+
+# 3. Projetos
+
+Projeto é uma subestrutura operacional do Cliente.
+
+Um Cliente pode possuir um ou mais Projetos.
+
+Exemplos:
+- Social Media
+- Casa Cor 2026
+- Campanha Dia das Mães
+- Novo Site
+
+## Dados do projeto
 
 - Nome
 - Cliente
-- Status
-- Responsável
-- Data de início
-- Data de encerramento opcional
 - Descrição
+- Status: ativo / pausado / finalizado
+- Data de início
+- Data prevista de término
+- Data real de conclusão
+- Responsável principal
+- Observações
 
-Um projeto poderá futuramente possuir escopo, serviços contratados, planejamento, orçamento, capacidade e indicadores.
+## Squad
+
+Projeto pode possuir vários membros responsáveis.
+
+A relação é muitos-para-muitos entre Projeto e membros da organização.
+
+Cada vínculo pode possuir:
+- Papel no projeto
+- Indicação de liderança
+
+O responsável principal do projeto não substitui o Squad.
+
+## Arquivos importantes
+
+Projeto pode possuir arquivos ou links importantes relacionados especificamente àquela operação.
+
+Arquivos de projeto não devem ser misturados com anexos de tarefas.
+
+## Regra estrutural
+
+Uma tarefa pertence obrigatoriamente a um Projeto.
+
+O Cliente da tarefa é derivável pelo Projeto. A aplicação nunca deve permitir uma combinação em que o Projeto pertença a outro Cliente.
 
 ---
 
-# 3. Núcleo de Tarefas
+# 4. Organização e usuários
+
+O CRATO é organizado por Workspace.
+
+Usuários autenticados participam de um Workspace através de vínculos de membro.
+
+Papéis iniciais:
+- owner
+- admin
+- member
+
+Clientes, contratos, projetos e tarefas devem pertencer explicitamente ao Workspace.
+
+As regras de acesso devem ser protegidas no banco com Row Level Security, não apenas na interface.
+
+---
+
+# 5. Histórico
+
+Alterações operacionais relevantes devem gerar histórico auditável centralizado.
+
+No núcleo inicial, o histórico deve suportar pelo menos:
+- Cliente
+- Contrato
+- Projeto
+
+Tarefas entrarão posteriormente na mesma estratégia de histórico.
+
+---
+
+# 6. Núcleo de Tarefas
 
 ## Regra central
 
@@ -158,10 +287,6 @@ A etapa poderá representar semanticamente:
 
 O nome visível da etapa é livre. A natureza operacional serve para comportamento sistêmico.
 
-Exemplo:
-"Editar" pode ter natureza `in_progress`.
-"Aguardando cliente" pode ter natureza `waiting`.
-
 ## Regra de consistência
 
 Uma tarefa nunca pode possuir uma workflow_step que não pertença ao seu task_type.
@@ -180,7 +305,6 @@ Se o Departamento mudar:
 ## Campos essenciais da Tarefa V1
 
 - Título
-- Cliente
 - Projeto
 - Tipo de Tarefa
 - Workflow Step atual
@@ -196,6 +320,8 @@ Se o Departamento mudar:
 - Arquivada
 - Criada por
 - Datas de criação e atualização
+
+O Cliente é derivado pelo Projeto e não deve ser persistido como uma relação independente que possa divergir.
 
 ## Elementos que pertencem à tarefa e serão preservados
 
@@ -215,62 +341,48 @@ Checklist é controle simples interno da tarefa.
 
 Subtarefa é uma tarefa real ligada a uma tarefa-pai e deve obedecer às mesmas regras de workflow das demais tarefas.
 
-## Histórico
+---
 
-Alterações operacionais importantes devem gerar histórico auditável, incluindo:
-- criação
-- mudança de etapa
-- mudança de prioridade
-- responsável
-- revisor
-- datas
-- briefing
-- anexos
-- comentários
-- arquivamento
+# 7. IA invisível
 
-O registro do histórico deve ser centralizado e não depender de cada tela implementar sua própria lógica.
+O CRATO pode usar IA em várias partes do produto, mas a IA não deve determinar a estética da interface.
+
+Regras:
+- evitar ícones e clichês visuais de IA;
+- preferir ações com nomes orientados ao resultado;
+- não depender de chat aberto como interface principal;
+- IA sugere, regras do sistema validam e o banco executa;
+- outputs usados para alterar o sistema devem ser estruturados e validados pelas regras de domínio.
 
 ---
 
-# 4. Relação inicial entre os módulos
+# 8. UX definida para V1
 
-Cliente
-→ Projeto
-→ Tarefa
-→ Tipo de Tarefa
-→ Tipo × Departamento
-→ Etapa
-
-O Planejamento será construído depois sobre essa fundação e converterá itens em tarefas válidas usando o mesmo motor de workflow.
-
----
-
-# 5. UX definida para V1
-
-- SaaS premium, claro, minimalista e operacional.
-- Sidebar por áreas.
-- Tabelas limpas e densidade controlada.
+- SaaS B2B premium, claro, denso e operacional.
+- Sidebar compacta por áreas.
+- Tabelas e listas limpas com boa densidade.
 - Tarefa abre preferencialmente em drawer lateral.
-- Cliente abre em página de detalhe.
+- Cliente e Projeto possuem páginas próprias.
 - Modal apenas para ações simples.
-- Mesma base de tarefas poderá ter Lista, Kanban, Tabela e Calendário no futuro.
+- Filtros em popover quando fizer sentido.
 - Não criar UI de ERP tradicional.
-- Não usar cores diferentes apenas para identificar módulos; cores devem ser principalmente semânticas.
+- Não criar aparência de template genérico de IA.
+- Cores são principalmente semânticas.
 
 ---
 
-# 6. Ordem de implementação
+# 9. Ordem de implementação
 
 1. Fundação técnica
 2. Autenticação / organização / usuário mínimo
-3. Clientes
-4. Projetos mínimos
-5. Configuração de Tipos de Tarefa
-6. Configuração de Departamentos
-7. Configuração de Workflow por Tipo × Departamento
-8. Tarefas
-9. Drawer da Tarefa
-10. Checklist / subtarefas / anexos / comentários / histórico
-11. Planejamento
-12. Demais módulos
+3. Clientes e contatos
+4. Contratos e condições financeiras
+5. Projetos, Squad e arquivos
+6. Configuração de Tipos de Tarefa
+7. Configuração de Departamentos
+8. Configuração de Workflow por Tipo × Departamento
+9. Tarefas
+10. Drawer da Tarefa
+11. Checklist / subtarefas / anexos / comentários / histórico
+12. Planejamento
+13. Demais módulos
