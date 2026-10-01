@@ -5,6 +5,7 @@ import { taskKeys } from '@/domains/tasks/queries/task-keys'
 import { taskCreateSchema, taskPriorityValues, taskUpdateSchema } from '@/domains/tasks/schemas/task-schema'
 import type { Task } from '@/domains/tasks/types'
 import type { WorkflowStep } from '@/domains/workflows/types'
+import taskFoundationMigration from '../../supabase/migrations/20261001060000_extend_tasks_operations.sql?raw'
 
 const projectId = 'a3b71d7e-0564-45cb-8ff2-9d7aebbf1ff3'
 const taskTypeId = '8ce8dce5-e690-4f28-86b3-327ea393cd2f'
@@ -12,9 +13,10 @@ const taskTypeId = '8ce8dce5-e690-4f28-86b3-327ea393cd2f'
 function task(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-1', workspace_id: 'workspace-1', project_id: projectId, task_type_id: taskTypeId,
-    workflow_step_id: 'step-1', parent_task_id: null, title: 'Editar peça', briefing: null,
+    workflow_step_id: 'step-1', parent_task_id: null, task_number: 1847, sprint_id: null,
+    title: 'Editar peça', briefing: null,
     final_copy: null, priority: 'low', assignee_member_id: null, reviewer_member_id: null,
-    start_date: null, due_date: null, publication_date: null, sort_order: 0, completed_at: null,
+    start_date: null, execution_date: null, due_date: null, publication_date: null, sort_order: 0, completed_at: null,
     archived_at: null, created_by_member_id: null, created_at: '', updated_at: '',
     ...overrides,
   }
@@ -38,19 +40,47 @@ describe('schema do domínio Task', () => {
     expect(taskPriorityValues).toEqual(['low', 'medium', 'high'])
   })
 
-  it('valida cada data e os limites de entrega/publicação', () => {
+  it('valida a ordem entre início, execução, entrega e publicação', () => {
     const base = { project_id: projectId, task_type_id: taskTypeId, title: 'Campanha' }
+    expect(taskCreateSchema.safeParse({ ...base, start_date: '2026-06-20', execution_date: '2026-06-19' }).success).toBe(false)
+    expect(taskCreateSchema.safeParse({ ...base, execution_date: '2026-06-20', due_date: '2026-06-19' }).success).toBe(false)
     expect(taskCreateSchema.safeParse({ ...base, start_date: '2026-06-20', due_date: '2026-06-19' }).success).toBe(false)
     expect(taskCreateSchema.safeParse({ ...base, due_date: '2026-06-20', publication_date: '2026-06-19' }).success).toBe(false)
     expect(taskCreateSchema.safeParse({ ...base, start_date: '20/06/2026' }).success).toBe(false)
-    expect(taskCreateSchema.safeParse({ ...base, due_date: '2026-06-20', publication_date: '2026-06-21' }).success).toBe(true)
+    expect(taskCreateSchema.safeParse({
+      ...base, start_date: '2026-06-18', execution_date: '2026-06-19', due_date: '2026-06-20', publication_date: '2026-06-21',
+    }).success).toBe(true)
   })
 
-  it('impede client_id, department_id e workflow_step_id em updates genéricos', () => {
+  it('impede campos estruturais e task_number em updates genéricos', () => {
     expect(taskUpdateSchema.safeParse({ title: 'Novo título' }).success).toBe(true)
     expect(taskUpdateSchema.safeParse({ client_id: 'client-1' }).success).toBe(false)
     expect(taskUpdateSchema.safeParse({ department_id: 'department-1' }).success).toBe(false)
     expect(taskUpdateSchema.safeParse({ workflow_step_id: 'step-2' }).success).toBe(false)
+    expect(taskUpdateSchema.safeParse({ task_number: 2 }).success).toBe(false)
+    expect(taskCreateSchema.safeParse({ project_id: projectId, task_type_id: taskTypeId, title: 'Com número', task_number: 2 }).success).toBe(false)
+  })
+})
+
+describe('contrato de persistência da expansão de Task', () => {
+  it('gera task_number por sequence e trigger, sem MAX()+1, com unicidade por workspace', () => {
+    expect(taskFoundationMigration).toMatch(/create sequence if not exists private\.tasks_task_number_seq/i)
+    expect(taskFoundationMigration).toMatch(/new\.task_number\s*=\s*nextval\('private\.tasks_task_number_seq'/i)
+    expect(taskFoundationMigration).toMatch(/unique \(workspace_id, task_number\)/i)
+    expect(taskFoundationMigration).toMatch(/create trigger tasks_assign_and_protect_task_number/i)
+    expect(taskFoundationMigration).toMatch(/if new\.task_number is distinct from old\.task_number/i)
+    expect(taskFoundationMigration).not.toMatch(/max\s*\(\s*task_number\s*\)/i)
+  })
+
+  it('habilita RLS nas novas tabelas e limita as políticas ao workspace', () => {
+    for (const table of ['sprints', 'task_checklist_items', 'task_comments', 'task_files', 'task_saved_views']) {
+      expect(taskFoundationMigration).toMatch(new RegExp(`alter table public\\.${table} enable row level security`, 'i'))
+    }
+    expect(taskFoundationMigration).toMatch(/create policy sprints_select_member[\s\S]*private\.is_workspace_member\(workspace_id\)/i)
+    expect(taskFoundationMigration).toMatch(/create policy task_checklist_items_select_member[\s\S]*private\.is_workspace_member\(workspace_id\)/i)
+    expect(taskFoundationMigration).toMatch(/create policy task_comments_select_member[\s\S]*private\.is_workspace_member\(workspace_id\)/i)
+    expect(taskFoundationMigration).toMatch(/create policy task_files_select_member[\s\S]*private\.is_workspace_member\(workspace_id\)/i)
+    expect(taskFoundationMigration).toMatch(/create policy task_saved_views_select_owner[\s\S]*private\.is_workspace_member\(workspace_id\)/i)
   })
 })
 

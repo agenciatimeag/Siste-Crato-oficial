@@ -6,6 +6,11 @@ import type { TaskType, WorkflowStep } from '@/domains/workflows/types'
 
 export type Task = Database['public']['Tables']['tasks']['Row']
 export type TaskPriority = Task['priority']
+export type Sprint = Database['public']['Tables']['sprints']['Row']
+export type TaskChecklistItem = Database['public']['Tables']['task_checklist_items']['Row']
+export type TaskComment = Database['public']['Tables']['task_comments']['Row']
+export type TaskFile = Database['public']['Tables']['task_files']['Row']
+export type TaskSavedView = Database['public']['Tables']['task_saved_views']['Row']
 export type TaskMember = Database['public']['Tables']['workspace_members']['Row']
 export type TaskMemberDetails = {
   member: TaskMember
@@ -18,6 +23,7 @@ export type TaskCreateInput = {
   workflow_step_id?: string | null
   department_id?: string | null
   parent_task_id?: string | null
+  sprint_id?: string | null
   title: string
   briefing?: string | null
   final_copy?: string | null
@@ -25,6 +31,7 @@ export type TaskCreateInput = {
   assignee_member_id?: string | null
   reviewer_member_id?: string | null
   start_date?: string | null
+  execution_date?: string | null
   due_date?: string | null
   publication_date?: string | null
   sort_order?: number
@@ -43,6 +50,7 @@ export type TaskUpdateInput = Partial<Pick<
   | 'assignee_member_id'
   | 'reviewer_member_id'
   | 'start_date'
+  | 'execution_date'
   | 'due_date'
   | 'publication_date'
   | 'sort_order'
@@ -50,6 +58,7 @@ export type TaskUpdateInput = Partial<Pick<
 
 export type TaskListFilters = {
   projectId?: string
+  sprintId?: string
   assigneeMemberId?: string
   reviewerMemberId?: string
   taskTypeId?: string
@@ -58,6 +67,8 @@ export type TaskListFilters = {
   priority?: TaskPriority
   dueDateFrom?: string
   dueDateTo?: string
+  executionDateFrom?: string
+  executionDateTo?: string
   publicationDateFrom?: string
   publicationDateTo?: string
   overdueOnly?: boolean
@@ -70,6 +81,7 @@ export type TaskListFilters = {
 export type TaskDetail = {
   task: Task
   project: Project
+  sprint: Sprint | null
   client: Client
   taskType: TaskType
   department: Department

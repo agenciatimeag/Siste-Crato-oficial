@@ -21,9 +21,10 @@ vi.mock('@/domains/workflows/queries/workflow-queries', () => ({ getWorkflowForT
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-1', workspace_id: 'workspace-1', project_id: 'project-1', task_type_id: 'type-1',
-    workflow_step_id: 'step-1', parent_task_id: null, title: 'Editar vídeo', briefing: null,
+    workflow_step_id: 'step-1', parent_task_id: null, task_number: 1847, sprint_id: null,
+    title: 'Editar vídeo', briefing: null,
     final_copy: null, priority: 'medium', assignee_member_id: 'member-1', reviewer_member_id: null,
-    start_date: '2026-10-01', due_date: '2026-10-10', publication_date: null, sort_order: 0,
+    start_date: '2026-10-01', execution_date: null, due_date: '2026-10-10', publication_date: null, sort_order: 0,
     completed_at: null, archived_at: null, created_by_member_id: 'member-1', created_at: '', updated_at: '',
     ...overrides,
   }
@@ -56,25 +57,28 @@ describe('consultas server-side de Task', () => {
     expect(tasksQuery.calls).toContainEqual({ method: 'order', args: ['sort_order'] })
   })
 
-  it('combina filtros de Projeto, Tipo, Etapa, responsável/revisor e intervalos no banco', async () => {
+  it('combina filtros de Projeto, Sprint, Tipo, Etapa, responsável/revisor e intervalos no banco', async () => {
     const tasksQuery = fluentQuery({ data: [], error: null })
     const client = { from: vi.fn(() => tasksQuery.query) } as unknown as SupabaseClient<Database>
 
     await listTasks('workspace-current', {
-      projectId: 'project-1', assigneeMemberId: 'member-1', reviewerMemberId: 'member-2',
+      projectId: 'project-1', sprintId: 'sprint-1', assigneeMemberId: 'member-1', reviewerMemberId: 'member-2',
       taskTypeId: 'type-1', workflowStepId: 'step-1', priority: 'high',
       dueDateFrom: '2026-10-01', dueDateTo: '2026-10-31',
+      executionDateFrom: '2026-10-03', executionDateTo: '2026-10-29',
       publicationDateFrom: '2026-10-05', publicationDateTo: '2026-11-01',
       overdueOnly: true, overdueAsOf: '2026-10-15',
     }, client)
 
     for (const [column, value] of [
-      ['workspace_id', 'workspace-current'], ['project_id', 'project-1'],
+      ['workspace_id', 'workspace-current'], ['project_id', 'project-1'], ['sprint_id', 'sprint-1'],
       ['assignee_member_id', 'member-1'], ['reviewer_member_id', 'member-2'],
       ['task_type_id', 'type-1'], ['workflow_step_id', 'step-1'], ['priority', 'high'],
     ]) expect(tasksQuery.calls).toContainEqual({ method: 'eq', args: [column, value] })
     expect(tasksQuery.calls).toContainEqual({ method: 'gte', args: ['due_date', '2026-10-01'] })
     expect(tasksQuery.calls).toContainEqual({ method: 'lte', args: ['due_date', '2026-10-31'] })
+    expect(tasksQuery.calls).toContainEqual({ method: 'gte', args: ['execution_date', '2026-10-03'] })
+    expect(tasksQuery.calls).toContainEqual({ method: 'lte', args: ['execution_date', '2026-10-29'] })
     expect(tasksQuery.calls).toContainEqual({ method: 'gte', args: ['publication_date', '2026-10-05'] })
     expect(tasksQuery.calls).toContainEqual({ method: 'lte', args: ['publication_date', '2026-11-01'] })
     expect(tasksQuery.calls).toContainEqual({ method: 'lt', args: ['due_date', '2026-10-15'] })

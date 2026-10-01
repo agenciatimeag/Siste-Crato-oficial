@@ -73,8 +73,28 @@ export type Database = {
         { id?: string; workspace_id: string; task_type_department_id: string; name: string; position: number; operational_nature?: 'todo' | 'in_progress' | 'waiting' | 'done' | 'complete'; is_internal_review?: boolean; is_external_review?: boolean; is_revision?: boolean; starts_timesheet?: boolean; stops_timesheet?: boolean; estimated_minutes?: number | null; is_active?: boolean; created_at?: string; updated_at?: string }
       >
       tasks: Table<
-        { id: string; workspace_id: string; project_id: string; task_type_id: string; workflow_step_id: string; parent_task_id: string | null; title: string; briefing: string | null; final_copy: string | null; priority: 'low' | 'medium' | 'high'; assignee_member_id: string | null; reviewer_member_id: string | null; start_date: string | null; due_date: string | null; publication_date: string | null; sort_order: number; completed_at: string | null; archived_at: string | null; created_by_member_id: string | null; created_at: string; updated_at: string },
-        { id?: string; workspace_id: string; project_id: string; task_type_id: string; workflow_step_id: string; parent_task_id?: string | null; title: string; briefing?: string | null; final_copy?: string | null; priority?: 'low' | 'medium' | 'high'; assignee_member_id?: string | null; reviewer_member_id?: string | null; start_date?: string | null; due_date?: string | null; publication_date?: string | null; sort_order?: number; completed_at?: string | null; archived_at?: string | null; created_by_member_id?: string | null; created_at?: string; updated_at?: string }
+        { id: string; workspace_id: string; project_id: string; task_type_id: string; workflow_step_id: string; parent_task_id: string | null; task_number: number; sprint_id: string | null; title: string; briefing: string | null; final_copy: string | null; priority: 'low' | 'medium' | 'high'; assignee_member_id: string | null; reviewer_member_id: string | null; start_date: string | null; execution_date: string | null; due_date: string | null; publication_date: string | null; sort_order: number; completed_at: string | null; archived_at: string | null; created_by_member_id: string | null; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; project_id: string; task_type_id: string; workflow_step_id: string; parent_task_id?: string | null; task_number?: never; sprint_id?: string | null; title: string; briefing?: string | null; final_copy?: string | null; priority?: 'low' | 'medium' | 'high'; assignee_member_id?: string | null; reviewer_member_id?: string | null; start_date?: string | null; execution_date?: string | null; due_date?: string | null; publication_date?: string | null; sort_order?: number; completed_at?: string | null; archived_at?: string | null; created_by_member_id?: string | null; created_at?: string; updated_at?: string }
+      >
+      sprints: Table<
+        { id: string; workspace_id: string; name: string; start_date: string | null; end_date: string | null; is_active: boolean; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; name: string; start_date?: string | null; end_date?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
+      >
+      task_checklist_items: Table<
+        { id: string; workspace_id: string; task_id: string; title: string; position: number; is_completed: boolean; completed_at: string | null; created_by_member_id: string | null; completed_by_member_id: string | null; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; task_id: string; title: string; position: number; is_completed?: boolean; completed_at?: string | null; created_by_member_id?: string | null; completed_by_member_id?: string | null; created_at?: string; updated_at?: string }
+      >
+      task_comments: Table<
+        { id: string; workspace_id: string; task_id: string; author_member_id: string; body: string; reply_to_comment_id: string | null; created_at: string; updated_at: string; deleted_at: string | null },
+        { id?: string; workspace_id: string; task_id: string; author_member_id: string; body: string; reply_to_comment_id?: string | null; created_at?: string; updated_at?: string; deleted_at?: string | null }
+      >
+      task_files: Table<
+        { id: string; workspace_id: string; task_id: string; comment_id: string | null; kind: 'attachment' | 'final_delivery' | 'comment_attachment'; file_name: string; mime_type: string | null; size_bytes: number | null; storage_path: string | null; created_by_member_id: string | null; created_at: string },
+        { id?: string; workspace_id: string; task_id: string; comment_id?: string | null; kind: 'attachment' | 'final_delivery' | 'comment_attachment'; file_name: string; mime_type?: string | null; size_bytes?: number | null; storage_path?: string | null; created_by_member_id?: string | null; created_at?: string }
+      >
+      task_saved_views: Table<
+        { id: string; workspace_id: string; member_id: string; name: string; view_type: 'dashboard' | 'calendar' | 'kanban' | 'list'; settings: Record<string, unknown>; is_default: boolean; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; member_id: string; name: string; view_type: 'dashboard' | 'calendar' | 'kanban' | 'list'; settings?: Record<string, unknown>; is_default?: boolean; created_at?: string; updated_at?: string }
       >
     }
     Views: Record<never, never>

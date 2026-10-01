@@ -29,6 +29,18 @@ async function validateAssignments(
   await Promise.all(memberIds.map((memberId) => requireActiveMember(workspaceId, memberId, client)))
 }
 
+async function requireActiveSprint(
+  workspaceId: string,
+  sprintId: string,
+  client: SupabaseClient<Database>,
+) {
+  const { data, error } = await client.from('sprints').select('id, is_active')
+    .eq('workspace_id', workspaceId).eq('id', sprintId).maybeSingle()
+  if (error) throw mapTaskError(error)
+  if (!data) throw new DomainError('Sprint não encontrada neste workspace.', 'SPRINT_NOT_FOUND')
+  if (!data.is_active) throw new DomainError('Sprint inativa não pode receber tarefas.', 'SPRINT_INACTIVE')
+}
+
 async function getTaskWorkflowDepartment(
   workspaceId: string,
   task: Task,
@@ -80,6 +92,7 @@ export async function createTask(
     }
   }
   await validateAssignments(workspaceId, values.assignee_member_id, values.reviewer_member_id, client)
+  if (values.sprint_id) await requireActiveSprint(workspaceId, values.sprint_id, client)
   const resolvedPosition = await resolveWorkflowPosition(workspaceId, {
     taskTypeId: values.task_type_id,
     departmentId: values.department_id ?? undefined,
@@ -114,6 +127,7 @@ function taskEditableFields(task: Task) {
     assignee_member_id: task.assignee_member_id,
     reviewer_member_id: task.reviewer_member_id,
     start_date: task.start_date,
+    execution_date: task.execution_date,
     due_date: task.due_date,
     publication_date: task.publication_date,
     sort_order: task.sort_order,
@@ -121,7 +135,7 @@ function taskEditableFields(task: Task) {
 }
 
 function getTaskUpdateAction(changedFields: string[]) {
-  const dateFields = ['start_date', 'due_date', 'publication_date']
+  const dateFields = ['start_date', 'execution_date', 'due_date', 'publication_date']
   if (changedFields.length > 0 && changedFields.every((field) => dateFields.includes(field))) {
     return 'task.dates_changed'
   }
@@ -164,9 +178,10 @@ export async function updateTask(
   if (changedFields.includes('priority')) metadata.priority = { from: current.priority, to: data.priority }
   if (changedFields.includes('assignee_member_id')) metadata.assignee_member_id = data.assignee_member_id
   if (changedFields.includes('reviewer_member_id')) metadata.reviewer_member_id = data.reviewer_member_id
-  if (changedFields.some((field) => ['start_date', 'due_date', 'publication_date'].includes(field))) {
+  if (changedFields.some((field) => ['start_date', 'execution_date', 'due_date', 'publication_date'].includes(field))) {
     metadata.dates = {
       start_date: data.start_date,
+      execution_date: data.execution_date,
       due_date: data.due_date,
       publication_date: data.publication_date,
     }
@@ -260,6 +275,27 @@ export async function changeTaskType(
     departmentId: position.department.id,
     operationalNature: position.workflowStep.operational_nature,
   }, 'task.type_changed', actorMemberId, client)
+}
+
+export async function setTaskSprint(
+  workspaceId: string,
+  taskId: string,
+  sprintId: string | null,
+  actorMemberId?: string | null,
+  client: SupabaseClient<Database> = supabase,
+) {
+  const current = await getTask(workspaceId, taskId, client)
+  if (current.sprint_id === sprintId) return current
+  if (sprintId) await requireActiveSprint(workspaceId, sprintId, client)
+  const { data, error } = await client.from('tasks').update({ sprint_id: sprintId })
+    .eq('workspace_id', workspaceId).eq('id', taskId).select('*').maybeSingle()
+  if (error) throw mapTaskError(error)
+  if (!data) throw new DomainError('Tarefa não encontrada neste workspace.', 'TASK_NOT_FOUND')
+  await writeTaskActivity(workspaceId, taskId, 'task.sprint_changed', actorMemberId, {
+    previous_sprint_id: current.sprint_id,
+    sprint_id: sprintId,
+  }, client)
+  return data
 }
 
 async function setArchived(

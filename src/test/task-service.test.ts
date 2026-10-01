@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { archiveTask, assignTask, changeTaskType, createSubtask, createTask, moveTaskToDepartment, moveTaskToStep, reorderTasksInProject, restoreTask, setTaskReviewer, setTaskSortOrder, updateTask } from '@/domains/tasks/services/task-service'
+import { archiveTask, assignTask, changeTaskType, createSubtask, createTask, moveTaskToDepartment, moveTaskToStep, reorderTasksInProject, restoreTask, setTaskReviewer, setTaskSortOrder, setTaskSprint, updateTask } from '@/domains/tasks/services/task-service'
 import type { Database } from '@/lib/supabase/database.types'
 import type { Task } from '@/domains/tasks/types'
 
@@ -27,9 +27,10 @@ const secondStepId = 'da6f6464-8ab0-465e-bf75-7fc511354e31'
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: taskId, workspace_id: 'workspace-1', project_id: projectId, task_type_id: taskTypeId,
-    workflow_step_id: firstStepId, parent_task_id: null, title: 'Criar vídeo', briefing: null,
+    workflow_step_id: firstStepId, parent_task_id: null, task_number: 1847, sprint_id: null,
+    title: 'Criar vídeo', briefing: null,
     final_copy: null, priority: 'low', assignee_member_id: null, reviewer_member_id: null,
-    start_date: null, due_date: null, publication_date: null, sort_order: 0, completed_at: null,
+    start_date: null, execution_date: null, due_date: null, publication_date: null, sort_order: 0, completed_at: null,
     archived_at: null, created_by_member_id: 'member-1', created_at: '', updated_at: '',
     ...overrides,
   }
@@ -151,6 +152,26 @@ describe('criação e integridade da tarefa', () => {
     expect(insertedTasks[0]).not.toHaveProperty('department_id')
     expect(insertedEvents).toHaveLength(1)
     expect(insertedEvents[0]).toMatchObject({ entity_type: 'task', entity_id: resultTask.id, action: 'task.created' })
+  })
+
+  it('cria tarefa apenas com Sprint ativa do mesmo workspace', async () => {
+    const sprintId = '16f67c23-1e8d-49d2-9d2f-20d123456789'
+    const insertedTasks: unknown[] = []
+    const sprintQuery = fluentQuery({ data: { id: sprintId, is_active: true }, error: null })
+    const created = makeTask({ sprint_id: sprintId })
+    const db = mockClient({
+      projects: [projectQuery()],
+      sprints: [sprintQuery],
+      tasks: [fluentQuery({ data: created, error: null }, insertedTasks)],
+      activity_log: [fluentQuery({ error: null })],
+    })
+
+    await expect(createTask('workspace-1', {
+      project_id: projectId, task_type_id: taskTypeId, sprint_id: sprintId, title: 'Com Sprint',
+    }, null, db.client)).resolves.toEqual(created)
+    expect(sprintQuery.calls).toContainEqual({ method: 'eq', args: ['workspace_id', 'workspace-1'] })
+    expect(insertedTasks[0]).toMatchObject({ sprint_id: sprintId })
+    expect(insertedTasks[0]).not.toHaveProperty('task_number')
   })
 
   it('usa a primeira etapa do Departamento informado ou mantém uma etapa explícita válida', async () => {
@@ -387,6 +408,41 @@ describe('transições centralizadas e histórico', () => {
       expect(query.query.eq).toHaveBeenCalledWith('workspace_id', 'workspace-1')
       expect(query.query.eq).toHaveBeenCalledWith('status', 'active')
     }
+  })
+
+  it('atribui e remove Sprint, bloqueando Sprint externa ou inativa', async () => {
+    const sprintId = '16f67c23-1e8d-49d2-9d2f-20d123456789'
+    const current = makeTask()
+    const assigned = makeTask({ sprint_id: sprintId })
+    const events: unknown[] = []
+    const updates: unknown[] = []
+    const db = mockClient({
+      tasks: [
+        fluentQuery({ data: current, error: null }), fluentQuery({ data: assigned, error: null }, [], updates),
+        fluentQuery({ data: assigned, error: null }), fluentQuery({ data: current, error: null }, [], updates),
+      ],
+      sprints: [fluentQuery({ data: { id: sprintId, is_active: true }, error: null })],
+      activity_log: [fluentQuery({ error: null }, events), fluentQuery({ error: null }, events)],
+    })
+
+    await expect(setTaskSprint('workspace-1', current.id, sprintId, 'member-1', db.client)).resolves.toEqual(assigned)
+    await expect(setTaskSprint('workspace-1', current.id, null, 'member-1', db.client)).resolves.toEqual(current)
+    expect(updates).toEqual([{ sprint_id: sprintId }, { sprint_id: null }])
+    expect(events.map((event) => (event as { action: string }).action)).toEqual(['task.sprint_changed', 'task.sprint_changed'])
+
+    const externalSprint = mockClient({
+      tasks: [fluentQuery({ data: current, error: null })],
+      sprints: [fluentQuery({ data: null, error: null })],
+    })
+    await expect(setTaskSprint('workspace-1', current.id, sprintId, null, externalSprint.client))
+      .rejects.toMatchObject({ code: 'SPRINT_NOT_FOUND' })
+
+    const inactiveSprint = mockClient({
+      tasks: [fluentQuery({ data: current, error: null })],
+      sprints: [fluentQuery({ data: { id: sprintId, is_active: false }, error: null })],
+    })
+    await expect(setTaskSprint('workspace-1', current.id, sprintId, null, inactiveSprint.client))
+      .rejects.toMatchObject({ code: 'SPRINT_INACTIVE' })
   })
 
   it('arquiva/restaura sem excluir e registra um evento por transição', async () => {
