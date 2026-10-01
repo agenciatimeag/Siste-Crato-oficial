@@ -12,6 +12,10 @@ export type Database = {
         { id: string; name: string; slug: string | null; created_by_user_id: string; created_at: string; updated_at: string },
         { id?: string; name: string; slug?: string | null; created_by_user_id?: string; created_at?: string; updated_at?: string }
       >
+      profiles: Table<
+        { id: string; full_name: string; avatar_url: string | null; phone: string | null; created_at: string; updated_at: string },
+        { id: string; full_name: string; avatar_url?: string | null; phone?: string | null; created_at?: string; updated_at?: string }
+      >
       workspace_members: Table<
         { id: string; workspace_id: string; user_id: string; role: 'owner' | 'admin' | 'member'; status: 'active' | 'inactive'; job_title: string | null; created_at: string; updated_at: string },
         { id?: string; workspace_id: string; user_id: string; role?: 'owner' | 'admin' | 'member'; status?: 'active' | 'inactive'; job_title?: string | null; created_at?: string; updated_at?: string }
@@ -49,8 +53,8 @@ export type Database = {
         { id?: string; workspace_id: string; project_id: string; source_type?: 'upload' | 'link'; file_name: string; storage_path?: string | null; external_url?: string | null; mime_type?: string | null; size_bytes?: number | null; description?: string | null; uploaded_by_member_id?: string | null; created_at?: string }
       >
       activity_log: Table<
-        { id: string; workspace_id: string; entity_type: 'client' | 'contract' | 'project'; entity_id: string; action: string; actor_member_id: string | null; metadata: Record<string, unknown>; created_at: string },
-        { id?: string; workspace_id: string; entity_type: 'client' | 'contract' | 'project'; entity_id: string; action: string; actor_member_id?: string | null; metadata?: Record<string, unknown>; created_at?: string }
+        { id: string; workspace_id: string; entity_type: 'client' | 'contract' | 'project' | 'task'; entity_id: string; action: string; actor_member_id: string | null; metadata: Record<string, unknown>; created_at: string },
+        { id?: string; workspace_id: string; entity_type: 'client' | 'contract' | 'project' | 'task'; entity_id: string; action: string; actor_member_id?: string | null; metadata?: Record<string, unknown>; created_at?: string }
       >
       task_types: Table<
         { id: string; workspace_id: string; name: string; description: string | null; is_active: boolean; created_at: string; updated_at: string },
@@ -67,6 +71,10 @@ export type Database = {
       workflow_steps: Table<
         { id: string; workspace_id: string; task_type_department_id: string; name: string; position: number; operational_nature: 'todo' | 'in_progress' | 'waiting' | 'done' | 'complete'; is_internal_review: boolean; is_external_review: boolean; is_revision: boolean; starts_timesheet: boolean; stops_timesheet: boolean; estimated_minutes: number | null; is_active: boolean; created_at: string; updated_at: string },
         { id?: string; workspace_id: string; task_type_department_id: string; name: string; position: number; operational_nature?: 'todo' | 'in_progress' | 'waiting' | 'done' | 'complete'; is_internal_review?: boolean; is_external_review?: boolean; is_revision?: boolean; starts_timesheet?: boolean; stops_timesheet?: boolean; estimated_minutes?: number | null; is_active?: boolean; created_at?: string; updated_at?: string }
+      >
+      tasks: Table<
+        { id: string; workspace_id: string; project_id: string; task_type_id: string; workflow_step_id: string; parent_task_id: string | null; title: string; briefing: string | null; final_copy: string | null; priority: 'low' | 'medium' | 'high'; assignee_member_id: string | null; reviewer_member_id: string | null; start_date: string | null; due_date: string | null; publication_date: string | null; sort_order: number; completed_at: string | null; archived_at: string | null; created_by_member_id: string | null; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; project_id: string; task_type_id: string; workflow_step_id: string; parent_task_id?: string | null; title: string; briefing?: string | null; final_copy?: string | null; priority?: 'low' | 'medium' | 'high'; assignee_member_id?: string | null; reviewer_member_id?: string | null; start_date?: string | null; due_date?: string | null; publication_date?: string | null; sort_order?: number; completed_at?: string | null; archived_at?: string | null; created_by_member_id?: string | null; created_at?: string; updated_at?: string }
       >
     }
     Views: Record<never, never>

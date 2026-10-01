@@ -1,0 +1,15 @@
+export {
+  getParentTask,
+  getTask,
+  getTaskDetails,
+  listArchivedTasks,
+  listOverdueTasks,
+  listSubtasks,
+  listTaskActivity,
+  listTasks,
+  listTasksByAssignee,
+  listTasksByProject,
+  listTasksByReviewer,
+  listTasksByType,
+  listTasksByWorkflowStep,
+} from '@/domains/tasks/queries/task-query-service'
