@@ -23,6 +23,16 @@ export function mapDatabaseError(error: unknown): DomainError {
   if (databaseError?.code === '23505' && constraint.includes('project_members_project_id_member_id_key')) {
     return new DomainError('Este membro já participa do projeto.', 'PROJECT_MEMBER_DUPLICATE', error)
   }
+  if (databaseError?.code === '23505' && constraint.includes('task_type_departments_task_type_id_department_id_key')) {
+    return new DomainError('Este departamento já faz parte do fluxo deste tipo de tarefa.', 'TASK_TYPE_DEPARTMENT_DUPLICATE', error)
+  }
+  if (
+    databaseError?.code === '23505'
+    && (constraint.includes('task_type_departments_task_type_id_position_key')
+      || constraint.includes('workflow_steps_task_type_department_id_position_key'))
+  ) {
+    return new DomainError('Esta posição já está ocupada neste fluxo.', 'WORKFLOW_POSITION_CONFLICT', error)
+  }
   if (databaseError?.code === '23503') {
     return new DomainError('Uma das relações informadas não pertence a este workspace.', 'WORKSPACE_RELATION_INVALID', error)
   }

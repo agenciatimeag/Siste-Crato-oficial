@@ -52,6 +52,22 @@ export type Database = {
         { id: string; workspace_id: string; entity_type: 'client' | 'contract' | 'project'; entity_id: string; action: string; actor_member_id: string | null; metadata: Record<string, unknown>; created_at: string },
         { id?: string; workspace_id: string; entity_type: 'client' | 'contract' | 'project'; entity_id: string; action: string; actor_member_id?: string | null; metadata?: Record<string, unknown>; created_at?: string }
       >
+      task_types: Table<
+        { id: string; workspace_id: string; name: string; description: string | null; is_active: boolean; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; name: string; description?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
+      >
+      departments: Table<
+        { id: string; workspace_id: string; name: string; description: string | null; is_active: boolean; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; name: string; description?: string | null; is_active?: boolean; created_at?: string; updated_at?: string }
+      >
+      task_type_departments: Table<
+        { id: string; workspace_id: string; task_type_id: string; department_id: string; position: number; is_active: boolean; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; task_type_id: string; department_id: string; position: number; is_active?: boolean; created_at?: string; updated_at?: string }
+      >
+      workflow_steps: Table<
+        { id: string; workspace_id: string; task_type_department_id: string; name: string; position: number; operational_nature: 'todo' | 'in_progress' | 'waiting' | 'done' | 'complete'; is_internal_review: boolean; is_external_review: boolean; is_revision: boolean; starts_timesheet: boolean; stops_timesheet: boolean; estimated_minutes: number | null; is_active: boolean; created_at: string; updated_at: string },
+        { id?: string; workspace_id: string; task_type_department_id: string; name: string; position: number; operational_nature?: 'todo' | 'in_progress' | 'waiting' | 'done' | 'complete'; is_internal_review?: boolean; is_external_review?: boolean; is_revision?: boolean; starts_timesheet?: boolean; stops_timesheet?: boolean; estimated_minutes?: number | null; is_active?: boolean; created_at?: string; updated_at?: string }
+      >
     }
     Views: Record<never, never>
     Functions: Record<never, never>
