@@ -2,6 +2,7 @@ import type { PropsWithChildren } from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { AppStatus } from '@/components/app-status'
 import { CreateWorkspacePage } from '@/domains/workspaces/pages/create-workspace-page'
+import { SelectWorkspacePage } from '@/domains/workspaces/pages/select-workspace-page'
 import { useAuth } from '@/domains/auth/auth-context'
 import { useWorkspace } from '@/domains/workspaces/workspace-context'
 
@@ -50,5 +51,6 @@ export function WorkspaceRoute() {
     )
   }
   if (status === 'missing') return <CreateWorkspacePage />
+  if (status === 'selection_required') return <SelectWorkspacePage />
   return <Outlet />
 }

@@ -5,31 +5,71 @@ import { supabase } from '@/lib/supabase/client'
 export type Workspace = {
   id: string
   name: string
+  memberId: string
 }
 
-export async function getWorkspaceForUser(
+export type WorkspaceResolution =
+  | { status: 'missing'; workspace: null }
+  | { status: 'ready'; workspace: Workspace }
+  | { status: 'selection_required'; workspace: null }
+
+export type WorkspaceSelectionStorage = Pick<Storage, 'getItem' | 'setItem'>
+
+const workspaceStorageKey = (userId: string) => `crato:last-workspace:${userId}`
+
+function getBrowserStorage(storage?: WorkspaceSelectionStorage) {
+  if (storage) return storage
+  return typeof window === 'undefined' ? null : window.localStorage
+}
+
+export function getLastSelectedWorkspaceId(userId: string, storage?: WorkspaceSelectionStorage) {
+  return getBrowserStorage(storage)?.getItem(workspaceStorageKey(userId)) ?? null
+}
+
+export function rememberWorkspaceSelection(
+  userId: string,
+  workspaceId: string,
+  storage?: WorkspaceSelectionStorage,
+) {
+  getBrowserStorage(storage)?.setItem(workspaceStorageKey(userId), workspaceId)
+}
+
+export function resolveWorkspaceSelection(
+  workspaces: Workspace[],
+  lastSelectedWorkspaceId: string | null,
+): WorkspaceResolution {
+  if (workspaces.length === 0) return { status: 'missing', workspace: null }
+  if (workspaces.length === 1) return { status: 'ready', workspace: workspaces[0] }
+
+  const selectedWorkspace = workspaces.find(({ id }) => id === lastSelectedWorkspaceId)
+  if (selectedWorkspace) return { status: 'ready', workspace: selectedWorkspace }
+  return { status: 'selection_required', workspace: null }
+}
+
+export async function listWorkspacesForUser(
   userId: string,
   client: SupabaseClient<Database> = supabase,
-): Promise<Workspace | null> {
-  const { data: membership, error: membershipError } = await client
+): Promise<Workspace[]> {
+  const { data: memberships, error: membershipError } = await client
     .from('workspace_members')
-    .select('workspace_id, created_at')
+    .select('id, workspace_id')
     .eq('user_id', userId)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle()
+    .eq('status', 'active')
 
   if (membershipError) throw membershipError
-  if (!membership) return null
+  if (!memberships?.length) return []
 
-  const { data: workspace, error: workspaceError } = await client
+  const { data: workspaces, error: workspaceError } = await client
     .from('workspaces')
     .select('id, name')
-    .eq('id', membership.workspace_id)
-    .single()
+    .in('id', memberships.map(({ workspace_id }) => workspace_id))
 
   if (workspaceError) throw workspaceError
-  return workspace
+  const membershipsByWorkspace = new Map(memberships.map(({ id, workspace_id }) => [workspace_id, id]))
+  return (workspaces ?? []).map((workspace) => ({
+    ...workspace,
+    memberId: membershipsByWorkspace.get(workspace.id)!,
+  }))
 }
 
 export async function createWorkspaceForUser(
@@ -45,13 +85,17 @@ export async function createWorkspaceForUser(
   const { error: workspaceError } = await client.from('workspaces').insert(workspace)
   if (workspaceError) throw workspaceError
 
-  const { error: membershipError } = await client.from('workspace_members').insert({
-    workspace_id: workspace.id,
-    user_id: userId,
-    role: 'owner',
-    status: 'active',
-  })
+  const { data: membership, error: membershipError } = await client
+    .from('workspace_members')
+    .insert({
+      workspace_id: workspace.id,
+      user_id: userId,
+      role: 'owner',
+      status: 'active',
+    })
+    .select('id')
+    .single()
   if (membershipError) throw membershipError
 
-  return workspace
+  return { ...workspace, memberId: membership.id }
 }

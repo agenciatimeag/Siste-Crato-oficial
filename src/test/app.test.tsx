@@ -14,9 +14,11 @@ const { authMock, workspaceMock } = vi.hoisted(() => ({
   },
   workspaceMock: {
     workspace: { id: 'workspace-1', name: 'Agência Time' } as unknown,
-    status: 'ready' as 'ready' | 'missing' | 'loading' | 'error',
+    availableWorkspaces: [] as Array<{ id: string; name: string; memberId: string }>,
+    status: 'ready' as 'ready' | 'missing' | 'selection_required' | 'loading' | 'error',
     error: null as string | null,
     reload: vi.fn(),
+    selectWorkspace: vi.fn(),
     createWorkspace: vi.fn(),
   },
 }))
@@ -46,6 +48,7 @@ describe('fluxo de autenticação e rotas', () => {
     authMock.isLoading = false
     authMock.initializationError = null
     workspaceMock.workspace = { id: 'workspace-1', name: 'Agência Time' }
+    workspaceMock.availableWorkspaces = []
     workspaceMock.status = 'ready'
     workspaceMock.error = null
   })
@@ -67,6 +70,20 @@ describe('fluxo de autenticação e rotas', () => {
     workspaceMock.workspace = null
     renderAt('/')
     expect(screen.getByRole('heading', { name: 'Criar espaço de trabalho' })).toBeInTheDocument()
+  })
+
+  it('exige seleção quando há múltiplos workspaces sem escolha resolvida', () => {
+    workspaceMock.status = 'selection_required'
+    workspaceMock.workspace = null
+    workspaceMock.availableWorkspaces = [
+      { id: 'workspace-1', name: 'Agência Time', memberId: 'member-1' },
+      { id: 'workspace-2', name: 'Agência Sul', memberId: 'member-2' },
+    ]
+    renderAt('/')
+
+    expect(screen.getByRole('heading', { name: 'Selecionar espaço de trabalho' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Agência Sul/ }))
+    expect(workspaceMock.selectWorkspace).toHaveBeenCalledWith('workspace-2')
   })
 
   it('envia as credenciais do formulário de login', async () => {
