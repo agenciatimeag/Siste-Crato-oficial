@@ -140,6 +140,7 @@ function getTaskUpdateAction(changedFields: string[]) {
     return 'task.dates_changed'
   }
   if (changedFields.length === 1) {
+    if (changedFields[0] === 'final_copy') return 'task.final_copy_updated'
     if (changedFields[0] === 'priority') return 'task.priority_changed'
     if (changedFields[0] === 'assignee_member_id') return 'task.assignee_changed'
     if (changedFields[0] === 'reviewer_member_id') return 'task.reviewer_changed'

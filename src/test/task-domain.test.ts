@@ -63,10 +63,11 @@ describe('schema do domínio Task', () => {
 })
 
 describe('contrato de persistência da expansão de Task', () => {
-  it('gera task_number por sequence e trigger, sem MAX()+1, com unicidade por workspace', () => {
+  it('gera task_number global por sequence e trigger, sem MAX()+1', () => {
     expect(taskFoundationMigration).toMatch(/create sequence if not exists private\.tasks_task_number_seq/i)
     expect(taskFoundationMigration).toMatch(/new\.task_number\s*=\s*nextval\('private\.tasks_task_number_seq'/i)
-    expect(taskFoundationMigration).toMatch(/unique \(workspace_id, task_number\)/i)
+    expect(taskFoundationMigration).toMatch(/add constraint tasks_task_number_unique unique \(task_number\)/i)
+    expect(taskFoundationMigration).not.toMatch(/unique \(workspace_id, task_number\)/i)
     expect(taskFoundationMigration).toMatch(/create trigger tasks_assign_and_protect_task_number/i)
     expect(taskFoundationMigration).toMatch(/if new\.task_number is distinct from old\.task_number/i)
     expect(taskFoundationMigration).not.toMatch(/max\s*\(\s*task_number\s*\)/i)

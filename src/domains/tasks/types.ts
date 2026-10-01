@@ -11,6 +11,22 @@ export type TaskChecklistItem = Database['public']['Tables']['task_checklist_ite
 export type TaskComment = Database['public']['Tables']['task_comments']['Row']
 export type TaskFile = Database['public']['Tables']['task_files']['Row']
 export type TaskSavedView = Database['public']['Tables']['task_saved_views']['Row']
+export type TaskFileKind = TaskFile['kind']
+export type TaskSavedViewType = TaskSavedView['view_type']
+export type TaskSavedViewSort = {
+  field: 'task_number' | 'title' | 'priority' | 'start_date' | 'execution_date' | 'due_date' | 'publication_date' | 'created_at'
+  direction: 'asc' | 'desc'
+}
+export type TaskSavedViewSettings = {
+  filters?: TaskListFilters
+  sorting?: TaskSavedViewSort[]
+  grouping?: 'none' | 'project' | 'sprint' | 'assignee' | 'workflow_step' | 'priority'
+  colorMode?: 'default' | 'priority' | 'workflow' | 'assignee'
+  calendarDateMode?: 'start_date' | 'execution_date' | 'due_date' | 'publication_date'
+  calendarView?: 'month' | 'week' | 'day'
+  includeCompleted?: boolean
+  includeArchived?: boolean
+}
 export type TaskMember = Database['public']['Tables']['workspace_members']['Row']
 export type TaskMemberDetails = {
   member: TaskMember

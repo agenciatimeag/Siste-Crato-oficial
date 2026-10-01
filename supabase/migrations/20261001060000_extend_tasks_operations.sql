@@ -30,7 +30,7 @@ where task.task_number is null;
 
 alter table public.tasks
   alter column task_number set not null,
-  add constraint tasks_workspace_task_number_unique unique (workspace_id, task_number),
+  add constraint tasks_task_number_unique unique (task_number),
   add constraint tasks_sprint_fk foreign key (workspace_id, sprint_id)
     references public.sprints(workspace_id, id) on delete restrict,
   add constraint tasks_execution_date_check

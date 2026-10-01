@@ -45,4 +45,12 @@ export const taskKeys = {
     [...taskKeys.workspace(workspaceId), 'parent', taskId] as const,
   activity: (workspaceId: string | null, taskId: string | null) =>
     [...taskKeys.workspace(workspaceId), 'activity', taskId] as const,
+  checklist: (workspaceId: string | null, taskId: string | null) =>
+    [...taskKeys.workspace(workspaceId), 'checklist', taskId] as const,
+  comments: (workspaceId: string | null, taskId: string | null) =>
+    [...taskKeys.workspace(workspaceId), 'comments', taskId] as const,
+  files: (workspaceId: string | null, taskId: string | null, kind?: string) =>
+    [...taskKeys.workspace(workspaceId), 'files', taskId, kind ?? 'all'] as const,
+  savedViews: (workspaceId: string | null, memberId: string | null) =>
+    [...taskKeys.workspace(workspaceId), 'saved-views', memberId] as const,
 }

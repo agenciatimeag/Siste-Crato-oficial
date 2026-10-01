@@ -354,6 +354,18 @@ describe('transições centralizadas e histórico', () => {
     expect(emptyUpdate.calls).toEqual(['tasks'])
   })
 
+  it('atualiza final_copy com evento específico de entrega textual', async () => {
+    const current = makeTask({ final_copy: null })
+    const updated = makeTask({ final_copy: 'Texto aprovado para publicação.' })
+    const events: unknown[] = []
+    const db = mockClient({
+      tasks: [fluentQuery({ data: current, error: null }), fluentQuery({ data: updated, error: null })],
+      activity_log: [fluentQuery({ error: null }, events)],
+    })
+    await expect(updateTask('workspace-1', current.id, { final_copy: updated.final_copy }, 'member-1', db.client)).resolves.toEqual(updated)
+    expect(events[0]).toMatchObject({ action: 'task.final_copy_updated', entity_type: 'task' })
+  })
+
   it('valida datas parciais contra valores persistidos antes de gravar', async () => {
     const current = makeTask({ start_date: '2026-10-10', due_date: '2026-10-20' })
     const db = mockClient({ tasks: [fluentQuery({ data: current, error: null })] })

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { describe, expect, it, vi } from 'vitest'
-import { getTaskDetails, listArchivedTasks, listTasks, listTasksByProject } from '@/domains/tasks/queries/task-query-service'
+import { getTaskDetails, listArchivedTasks, listSubtasks, listTasks, listTasksByProject } from '@/domains/tasks/queries/task-query-service'
 import type { Database } from '@/lib/supabase/database.types'
 import type { Task } from '@/domains/tasks/types'
 
@@ -97,6 +97,21 @@ describe('consultas server-side de Task', () => {
     await listTasksByProject('workspace-current', 'project-1', {}, projectClient)
     expect(projectQuery.calls).toContainEqual({ method: 'eq', args: ['project_id', 'project-1'] })
     expect(projectQuery.calls).toContainEqual({ method: 'is', args: ['archived_at', null] })
+  })
+
+  it('lista subtarefas pelo parent_task_id no mesmo workspace com os campos operacionais da Task', async () => {
+    const parentQuery = fluentQuery({ data: makeTask(), error: null })
+    const subtask = makeTask({ id: 'subtask-1', parent_task_id: 'task-1', task_number: 1848, assignee_member_id: 'member-2' })
+    const subtasksQuery = fluentQuery({ data: [subtask], error: null })
+    const queries = [parentQuery, subtasksQuery]
+    const client = {
+      from: vi.fn(() => queries.shift()!.query),
+    } as unknown as SupabaseClient<Database>
+
+    await expect(listSubtasks('workspace-1', 'task-1', {}, client)).resolves.toEqual([subtask])
+    expect(parentQuery.calls).toContainEqual({ method: 'eq', args: ['workspace_id', 'workspace-1'] })
+    expect(subtasksQuery.calls).toContainEqual({ method: 'eq', args: ['parent_task_id', 'task-1'] })
+    expect(subtask).toMatchObject({ id: 'subtask-1', task_number: 1848, title: 'Editar vídeo', workflow_step_id: 'step-1', assignee_member_id: 'member-2', due_date: '2026-10-10', completed_at: null, archived_at: null })
   })
 
   it('enriquece detalhe derivando Cliente do Projeto e Departamento da Etapa', async () => {
