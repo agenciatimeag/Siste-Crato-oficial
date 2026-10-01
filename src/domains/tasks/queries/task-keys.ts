@@ -1,4 +1,9 @@
-import type { TaskListFilters } from '@/domains/tasks/types'
+import type {
+  CalendarQueryParams,
+  KanbanOptions,
+  TaskDashboardOptions,
+  TaskListFilters,
+} from '@/domains/tasks/types'
 
 export const taskKeys = {
   all: ['tasks'] as const,
@@ -6,6 +11,16 @@ export const taskKeys = {
   lists: (workspaceId: string | null) => [...taskKeys.workspace(workspaceId), 'list'] as const,
   list: (workspaceId: string | null, filters: TaskListFilters = {}) =>
     [...taskKeys.lists(workspaceId), filters] as const,
+  summaries: (workspaceId: string | null, filters: TaskListFilters = {}) =>
+    [...taskKeys.workspace(workspaceId), 'summaries', filters] as const,
+  byNumber: (workspaceId: string | null, taskNumber: number | string | null) =>
+    [...taskKeys.workspace(workspaceId), 'by-number', taskNumber] as const,
+  calendar: (workspaceId: string | null, params: CalendarQueryParams) =>
+    [...taskKeys.workspace(workspaceId), 'calendar', params] as const,
+  dashboard: (workspaceId: string | null, options: TaskDashboardOptions = {}) =>
+    [...taskKeys.workspace(workspaceId), 'dashboard', options] as const,
+  kanban: (workspaceId: string | null, options: KanbanOptions = {}) =>
+    [...taskKeys.workspace(workspaceId), 'kanban', options] as const,
   detail: (workspaceId: string | null, taskId: string | null) =>
     [...taskKeys.workspace(workspaceId), 'detail', taskId] as const,
   details: (workspaceId: string | null) => [...taskKeys.workspace(workspaceId), 'detail'] as const,

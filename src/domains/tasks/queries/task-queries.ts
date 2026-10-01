@@ -1,8 +1,14 @@
 export {
+  enrichTaskSummaries,
+  getKanbanData,
   getParentTask,
   getTask,
+  getTaskByNumber,
+  getTaskDashboardData,
   getTaskDetails,
+  getTaskSummaryByNumber,
   listArchivedTasks,
+  listCalendarTasks,
   listOverdueTasks,
   listSubtasks,
   listTaskActivity,
@@ -12,4 +18,6 @@ export {
   listTasksByReviewer,
   listTasksByType,
   listTasksByWorkflowStep,
+  listTaskSummaries,
+  resolveTaskState,
 } from '@/domains/tasks/queries/task-query-service'

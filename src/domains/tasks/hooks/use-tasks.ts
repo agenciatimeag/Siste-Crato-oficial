@@ -1,11 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useWorkspace } from '@/domains/workspaces/workspace-context'
 import { taskKeys } from '@/domains/tasks/queries/task-keys'
-import type { Task, TaskCreateInput, TaskListFilters, TaskSubtaskInput, TaskUpdateInput } from '@/domains/tasks/types'
+import type {
+  CalendarQueryParams,
+  KanbanOptions,
+  Task,
+  TaskCreateInput,
+  TaskDashboardOptions,
+  TaskListFilters,
+  TaskSubtaskInput,
+  TaskUpdateInput,
+} from '@/domains/tasks/types'
 import {
+  getKanbanData,
   getParentTask,
+  getTaskByNumber,
+  getTaskDashboardData,
   getTaskDetails,
   listArchivedTasks,
+  listCalendarTasks,
   listOverdueTasks,
   listSubtasks,
   listTaskActivity,
@@ -15,6 +28,7 @@ import {
   listTasksByReviewer,
   listTasksByType,
   listTasksByWorkflowStep,
+  listTaskSummaries,
 } from '@/domains/tasks/queries/task-queries'
 import {
   archiveTask,
@@ -86,6 +100,56 @@ export function useTasks(filters: TaskListFilters = {}) {
   return useQuery({
     queryKey: taskKeys.list(workspaceId, filters),
     queryFn: () => listTasks(workspace!.id, filters),
+    enabled: isWorkspaceReady(status, workspaceId),
+  })
+}
+
+export function useTaskSummaries(filters: TaskListFilters = {}) {
+  const { workspace, status } = useWorkspace()
+  const workspaceId = workspace?.id ?? null
+  return useQuery({
+    queryKey: taskKeys.summaries(workspaceId, filters),
+    queryFn: () => listTaskSummaries(workspace!.id, filters),
+    enabled: isWorkspaceReady(status, workspaceId),
+  })
+}
+
+export function useTaskByNumber(taskNumber: number | string | null) {
+  const { workspace, status } = useWorkspace()
+  const workspaceId = workspace?.id ?? null
+  return useQuery({
+    queryKey: taskKeys.byNumber(workspaceId, taskNumber),
+    queryFn: () => getTaskByNumber(workspace!.id, taskNumber!),
+    enabled: isWorkspaceReady(status, workspaceId) && taskNumber !== null && taskNumber !== undefined,
+  })
+}
+
+export function useCalendarTasks(params: CalendarQueryParams) {
+  const { workspace, status } = useWorkspace()
+  const workspaceId = workspace?.id ?? null
+  return useQuery({
+    queryKey: taskKeys.calendar(workspaceId, params),
+    queryFn: () => listCalendarTasks(workspace!.id, params),
+    enabled: isWorkspaceReady(status, workspaceId),
+  })
+}
+
+export function useTaskDashboard(options: TaskDashboardOptions = {}) {
+  const { workspace, status } = useWorkspace()
+  const workspaceId = workspace?.id ?? null
+  return useQuery({
+    queryKey: taskKeys.dashboard(workspaceId, options),
+    queryFn: () => getTaskDashboardData(workspace!.id, options),
+    enabled: isWorkspaceReady(status, workspaceId),
+  })
+}
+
+export function useKanbanData(options: KanbanOptions = {}) {
+  const { workspace, status } = useWorkspace()
+  const workspaceId = workspace?.id ?? null
+  return useQuery({
+    queryKey: taskKeys.kanban(workspaceId, options),
+    queryFn: () => getKanbanData(workspace!.id, options),
     enabled: isWorkspaceReady(status, workspaceId),
   })
 }
